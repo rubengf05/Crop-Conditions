@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>USDA NASS · Crop Conditions — All Commodities</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0c0f;
+  --surface: #111418;
+  --surface2: #161a20;
+  --border: #252a32;
+  --border2: #2e3540;
+  --text: #e8eaf0;
+  --muted: #6b7280;
+  --accent: #f5c842;
+  --up: #22c55e;
+  --down: #ef4444;
+  --blue: #3b82f6;
+  --orange: #f59e0b;
+  --purple: #a78bfa;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: 'IBM Plex Sans', sans-serif; font-size: 14px; line-height: 1.6; }
+.wrap { max-width: 1100px; margin: 0 auto; padding: 2rem; }
+
+/* ── HEADER ── */
+.report-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--border); }
+.logo { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--accent); letter-spacing: 0.2em; text-transform: uppercase; margin-bottom: 6px; }
+.report-title { font-family: 'IBM Plex Mono', monospace; font-size: 24px; font-weight: 500; }
+.report-title span { color: var(--accent); }
+.report-period { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--muted); margin-top: 6px; letter-spacing: 0.06em; }
+.sources { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--muted); text-align: right; line-height: 1.9; }
+
+/* ── STATUS ── */
+.status-bar { display: flex; align-items: center; gap: 10px; background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 6px; padding: 10px 14px; margin-bottom: 1.5rem; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--muted); }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); flex-shrink: 0; transition: background 0.3s; }
+.dot.loading { background: var(--accent); animation: pulse 1s infinite; }
+.dot.ok { background: var(--up); }
+.dot.error { background: var(--down); }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.35} }
+
+/* ── CONTROLS ── */
+.controls { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 1rem 1.2rem; margin-bottom: 1.5rem; display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end; }
+.ctrl-group { display: flex; flex-direction: column; gap: 4px; }
+.ctrl-group label { font-family: 'IBM Plex Mono', monospace; font-size: 9px; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: 0.12em; }
+.ctrl-group select, .ctrl-group input[type="text"] {
+  font-family: 'IBM Plex Mono', monospace; font-size: 12px; padding: 6px 10px;
+  border: 1px solid var(--border2); border-radius: 5px;
+  background: var(--bg); color: var(--text); min-width: 140px; outline: none;
+}
+.ctrl-group select:focus, .ctrl-group input:focus { border-color: var(--accent); }
+.btn {
+  font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 500;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  background: var(--accent); color: #0a0c0f; border: none;
+  padding: 7px 18px; border-radius: 5px; cursor: pointer; transition: all 0.2s;
+}
+.btn:hover { background: #e0b53d; }
+.btn:disabled { background: var(--border2); color: var(--muted); cursor: not-allowed; }
+
+/* ── METRIC CARDS ── */
+.metrics { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 1.5rem; }
+.mc { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 0.9rem 1rem; }
+.ml { font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 5px; }
+.mv { font-family: 'IBM Plex Mono', monospace; font-size: 22px; font-weight: 500; line-height: 1.1; }
+.ms { font-family: 'IBM Plex Mono', monospace; font-size: 10px; margin-top: 4px; color: var(--muted); }
+.up { color: var(--up); } .down { color: var(--down); } .neutral { color: var(--muted); }
+
+/* ── SECTIONS ── */
+.sc { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1.25rem 1.5rem; margin-bottom: 1rem; }
+.sct { font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-bottom: 1rem; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+
+/* ── COMMODITY TABS ── */
+.tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 1.5rem; }
+.tab {
+  font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 500;
+  letter-spacing: 0.06em; text-transform: uppercase;
+  padding: 5px 12px; border-radius: 4px; cursor: pointer; transition: all 0.2s;
+  background: var(--surface); border: 1px solid var(--border); color: var(--muted);
+}
+.tab:hover { border-color: var(--accent); color: var(--accent); }
+.tab.active { background: rgba(245,200,66,0.12); border-color: rgba(245,200,66,0.4); color: var(--accent); }
+
+/* ── TABLE ── */
+.tbl-wrap { overflow-x: auto; border-radius: 8px; border: 1px solid var(--border); }
+table { width: 100%; border-collapse: collapse; font-family: 'IBM Plex Mono', monospace; font-size: 12px; background: var(--surface); }
+table thead tr { background: var(--surface2); }
+table thead th {
+  padding: 9px 10px; text-align: left; font-weight: 500; font-size: 9px;
+  text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted);
+  border-bottom: 1px solid var(--border); border-right: 1px solid var(--border);
+  white-space: nowrap; position: sticky; top: 0; z-index: 2;
+}
+table thead th:last-child { border-right: none; }
+table tbody tr { border-bottom: 1px solid #1a1e26; transition: background 0.15s; }
+table tbody tr:hover { background: rgba(245,200,66,0.04); }
+table tbody td {
+  padding: 7px 10px; border-right: 1px solid #1a1e26; white-space: nowrap; color: #c5c9d4;
+}
+table tbody td:last-child { border-right: none; }
+.td-state { color: var(--text); font-weight: 500; }
+.td-exc { color: var(--up); }
+.td-good { color: var(--blue); }
+.td-fair { color: var(--orange); }
+.td-poor { color: var(--down); }
+.td-vpoor { color: #f87171; font-weight: 500; }
+.td-ge { font-weight: 600; }
+.ge-high { color: var(--up); }
+.ge-mid { color: var(--accent); }
+.ge-low { color: var(--down); }
+
+/* ── CONDITION BAR ── */
+.cbar { display: flex; height: 12px; border-radius: 3px; overflow: hidden; min-width: 110px; gap: 1px; }
+.cbar-seg { height: 100%; }
+
+/* ── CHART ── */
+.chart-section { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1.25rem 1.5rem; margin-bottom: 1rem; }
+.chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem; flex-wrap: wrap; gap: 8px; }
+.chart-title { font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.chart-legend { display: flex; gap: 1rem; flex-wrap: wrap; }
+.li { display: flex; align-items: center; gap: 5px; font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: var(--muted); }
+.ld { width: 18px; height: 3px; border-radius: 1px; }
+.chart-canvas-wrap { position: relative; height: 260px; }
+
+/* ── HISTORICAL COMPARISON ── */
+.hist-row { display: flex; align-items: center; gap: 8px; padding: 5px 0; border-bottom: 1px solid #1a1e26; font-family: 'IBM Plex Mono', monospace; font-size: 11px; }
+.hist-row:last-child { border-bottom: none; }
+.hist-year { color: var(--muted); min-width: 40px; }
+.hist-bar-wrap { flex: 1; height: 14px; background: #1a1e26; border-radius: 3px; overflow: hidden; }
+.hist-bar { height: 100%; border-radius: 3px; transition: width 0.5s ease; }
+.hist-val { min-width: 42px; text-align: right; font-weight: 500; }
+
+/* ── EMPTY ── */
+.empty-state { text-align: center; padding: 50px 20px; color: var(--muted); font-family: 'IBM Plex Mono', monospace; font-size: 12px; }
+.empty-state strong { display: block; font-size: 14px; margin-bottom: 6px; color: var(--text); }
+
+/* ── FOOTER ── */
+.footer { margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--border); font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--muted); line-height: 2; }
+.warning-box { margin-top: 1.5rem; padding: 0.85rem 1.2rem; background: rgba(245,200,66,0.06); border: 1px solid rgba(245,200,66,0.2); border-radius: 8px; font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: #a0a6b0; line-height: 1.7; text-align: justify; }
+.warning-box .warn-icon { color: var(--accent); font-weight: 500; }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 700px) {
+  .metrics { grid-template-columns: repeat(2, 1fr); }
+  .report-header { flex-direction: column; gap: 1rem; }
+  .sources { text-align: left; }
+  .controls { gap: 10px; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ═══════════ HEADER ═══════════ -->
+  <div class="report-header">
+    <div>
+      <div class="logo">USDA NASS · Crop Intelligence</div>
+      <div class="report-title"><span>Crop Conditions</span> — All Commodities</div>
+      <div class="report-period" id="period-label">Datos en vivo · USDA National Agricultural Statistics Service</div>
+    </div>
+    <div class="sources">
+      Fuente: USDA NASS QuickStats API<br>
+      Proxy: /nass-api → quickstats.nass.usda.gov<br>
+      <span id="timestamp-label">—</span>
+    </div>
+  </div>
+
+  <!-- ═══════════ STATUS ═══════════ -->
+  <div class="status-bar">
+    <div class="dot" id="dot"></div>
+    <span id="status-msg">Configura los parámetros y pulsa <strong style="color:var(--accent);">Obtener datos</strong></span>
+  </div>
+
+  <!-- ═══════════ CONTROLS ═══════════ -->
+  <div class="controls">
+    <div class="ctrl-group">
+      <label>API Key</label>
+      <input type="text" id="api-key" value="DEMO_KEY" placeholder="Tu API key NASS" style="min-width:180px;">
+    </div>
+    <div class="ctrl-group">
+      <label>Año</label>
+      <select id="sel-year"></select>
+    </div>
+    <div class="ctrl-group">
+      <label>Commodity</label>
+      <select id="sel-commodity">
+        <option value="">— Todas las disponibles —</option>
+      </select>
+    </div>
+    <div class="ctrl-group">
+      <label>Estado</label>
+      <select id="sel-state">
+        <option value="">— Todos —</option>
+      </select>
+    </div>
+    <button class="btn" id="btn-fetch" onclick="fetchData()">Obtener datos</button>
+    <button class="btn" onclick="fetchCommodityList()" style="background:transparent;color:var(--accent);border:1px solid var(--accent);">↻ Listar commodities</button>
+  </div>
+
+  <!-- ═══════════ SUMMARY CARDS ═══════════ -->
+  <div id="cards-section" style="display:none;">
+    <div class="metrics" id="cards"></div>
+  </div>
+
+  <!-- ═══════════ COMMODITY TABS ═══════════ -->
+  <div class="tabs" id="commodity-tabs"></div>
+
+  <!-- ═══════════ GE CHART ═══════════ -->
+  <div class="chart-section" id="chart-section" style="display:none;">
+    <div class="chart-header">
+      <div class="chart-title" id="chart-title">Good + Excellent % — por estado</div>
+      <div class="chart-legend">
+        <div class="li"><div class="ld" style="background:var(--up);"></div>≥ 60%</div>
+        <div class="li"><div class="ld" style="background:var(--accent);"></div>40-60%</div>
+        <div class="li"><div class="ld" style="background:var(--down);"></div>< 40%</div>
+      </div>
+    </div>
+    <div id="ge-bars"></div>
+  </div>
+
+  <!-- ═══════════ DATA TABLE ═══════════ -->
+  <div class="sc" style="padding:0;overflow:hidden;" id="table-section">
+    <div id="table-container">
+      <div class="empty-state">
+        <strong>Sin datos cargados</strong>
+        Conecta con la API USDA NASS para ver las condiciones del cultivo de todas las materias primas.
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ HISTORICAL COMPARISON ═══════════ -->
+  <div class="sc" id="hist-section" style="display:none;">
+    <div class="sct">Comparativa histórica — Good + Excellent % (misma semana)</div>
+    <div id="hist-container"></div>
+  </div>
+
+  <!-- ═══════════ FOOTER ═══════════ -->
+  <div class="warning-box">
+    <span class="warn-icon">⚠ Advertencia:</span> Este informe es de carácter informativo y educativo.
+    Los datos provienen directamente de la API pública del USDA NASS. No constituye asesoramiento financiero ni comercial.
+    DEMO_KEY tiene límites de uso; sustituir por clave oficial para producción.
+  </div>
+  <div class="footer">
+    Datos: USDA NASS QuickStats API &nbsp;·&nbsp; Proxy Netlify: <code>/nass-api</code> → <code>quickstats.nass.usda.gov/api/api_GET/</code><br>
+    Parámetros: <code>statisticcat_desc=CONDITION</code> · <code>freq_desc=WEEKLY</code> · <code>sector_desc=CROPS</code> · <code>domain_desc=TOTAL</code><br>
+    Commodities disponibles: CORN, SOYBEANS, WINTER WHEAT, SPRING WHEAT, COTTON, SORGHUM, RICE, BARLEY, OATS, PEANUTS, SUGAR BEETS, y más.<br>
+    <span id="record-count-footer">—</span>
+  </div>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════════════
+   CONFIG & GLOBALS
+══════════════════════════════════════════════════════════ */
+const PROXY      = '/nass-api';
+const PROXY_PARAMS = '/nass-params';
+let   ALL_DATA   = [];
+let   COMMODITIES_IN_DATA = [];
+
+/* ══════════════════════════════════════════════════════════
+   INIT
+══════════════════════════════════════════════════════════ */
+(function init() {
+  const now = new Date();
+  document.getElementById('timestamp-label').textContent =
+    now.toLocaleDateString('es-ES', { day:'2-digit', month:'long', year:'numeric' }) +
+    ' · ' + now.toLocaleTimeString('es-ES', { hour:'2-digit', minute:'2-digit' });
+
+  const ySel = document.getElementById('sel-year');
+  const curYear = now.getFullYear();
+  for (let y = curYear; y >= curYear - 6; y--) {
+    const o = document.createElement('option');
+    o.value = y; o.textContent = y;
+    ySel.appendChild(o);
+  }
+
+  // Pre-populate known major commodities
+  const knownCommodities = [
+    'CORN','SOYBEANS','WINTER WHEAT','SPRING WHEAT, DURUM',
+    'SPRING WHEAT, (EXCL DURUM)','COTTON','SORGHUM','RICE',
+    'BARLEY','OATS','PEANUTS','SUGAR BEETS','HAY','PASTURE AND RANGE',
+    'SUNFLOWER','DRY EDIBLE BEANS'
+  ];
+  const cSel = document.getElementById('sel-commodity');
+  knownCommodities.forEach(c => {
+    const o = document.createElement('option');
+    o.value = c; o.textContent = c;
+    cSel.appendChild(o);
+  });
+
+  // Pre-populate states
+  const states = [
+    'ALABAMA','ARKANSAS','CALIFORNIA','COLORADO','GEORGIA','IDAHO','ILLINOIS',
+    'INDIANA','IOWA','KANSAS','KENTUCKY','LOUISIANA','MICHIGAN','MINNESOTA',
+    'MISSISSIPPI','MISSOURI','MONTANA','NEBRASKA','NEW YORK','NORTH CAROLINA',
+    'NORTH DAKOTA','OHIO','OKLAHOMA','OREGON','PENNSYLVANIA','SOUTH CAROLINA',
+    'SOUTH DAKOTA','TENNESSEE','TEXAS','VIRGINIA','WASHINGTON','WISCONSIN','WYOMING'
+  ];
+  const sSel = document.getElementById('sel-state');
+  states.forEach(s => {
+    const o = document.createElement('option');
+    o.value = s; o.textContent = titleCase(s);
+    sSel.appendChild(o);
+  });
+})();
+
+/* ══════════════════════════════════════════════════════════
+   HELPERS
+══════════════════════════════════════════════════════════ */
+function setStatus(type, msg) {
+  const dot = document.getElementById('dot');
+  dot.className = 'dot ' + (type === 'loading' ? 'loading' : type === 'ok' ? 'ok' : type === 'error' ? 'error' : '');
+  document.getElementById('status-msg').innerHTML = msg;
+}
+function titleCase(s) { return s ? s.split(' ').map(w => w.charAt(0) + w.slice(1).toLowerCase()).join(' ') : s; }
+function pct(v) { return v != null ? v.toFixed(0) + '%' : '—'; }
+function getKey() { return document.getElementById('api-key').value.trim() || 'DEMO_KEY'; }
+
+/* ══════════════════════════════════════════════════════════
+   FETCH COMMODITY LIST FROM API
+══════════════════════════════════════════════════════════ */
+async function fetchCommodityList() {
+  setStatus('loading', 'Consultando lista de commodities con Crop Condition…');
+  try {
+    const url = `${PROXY_PARAMS}?key=${getKey()}&param=commodity_desc&statisticcat_desc=CONDITION&freq_desc=WEEKLY&sector_desc=CROPS`;
+    const resp = await fetch(url);
+    const text = await resp.text();
+    let json;
+    try { json = JSON.parse(text); } catch { throw new Error('Respuesta no válida del endpoint param_values'); }
+    const vals = json.commodity_desc || json.data || [];
+    if (Array.isArray(vals) && vals.length) {
+      const sel = document.getElementById('sel-commodity');
+      // Clear except first
+      while (sel.options.length > 1) sel.remove(1);
+      vals.sort().forEach(c => {
+        const o = document.createElement('option');
+        o.value = c; o.textContent = c;
+        sel.appendChild(o);
+      });
+      setStatus('ok', `✓ ${vals.length} commodities con datos de Crop Condition`);
+    } else {
+      setStatus('error', 'No se obtuvieron commodities. Verifica la API key.');
+    }
+  } catch(e) {
+    setStatus('error', '✗ ' + e.message);
+  }
+}
+
+/* ══════════════════════════════════════════════════════════
+   MAIN FETCH — CROP CONDITIONS
+   Endpoint: /nass-api
+   Params:
+     statisticcat_desc = CONDITION
+     freq_desc         = WEEKLY
+     sector_desc       = CROPS
+     group_desc        = FIELD CROPS  (omit for broader search)
+     domain_desc       = TOTAL
+     year              = <selected>
+     commodity_desc    = <selected or omit for all>
+     state_name        = <selected or omit>
+     format            = JSON
+══════════════════════════════════════════════════════════ */
+async function fetchData() {
+  const apiKey = getKey();
+  const year   = document.getElementById('sel-year').value;
+  const commodity = document.getElementById('sel-commodity').value;
+  const state  = document.getElementById('sel-state').value;
+
+  document.getElementById('btn-fetch').disabled = true;
+  setStatus('loading', 'Consultando USDA NASS QuickStats — Crop Conditions…');
+  clearAll();
+
+  try {
+    const params = new URLSearchParams({
+      key: apiKey,
+      statisticcat_desc: 'CONDITION',
+      freq_desc: 'WEEKLY',
+      sector_desc: 'CROPS',
+      domain_desc: 'TOTAL',
+      year: year,
+      format: 'JSON'
+    });
+    if (commodity) params.set('commodity_desc', commodity);
+    if (state) params.set('state_name', state);
+
+    const url = `${PROXY}?${params.toString()}`;
+    const resp = await fetch(url);
+    if (!resp.ok) throw new Error(`HTTP ${resp.status} — ${resp.statusText}`);
+
+    const raw = await resp.text();
+    if (raw.startsWith('<!') || raw.startsWith('ERROR') || raw.includes('"error"')) {
+      let errMsg = 'Respuesta inesperada de la API.';
+      try { const ej = JSON.parse(raw); if (ej.error) errMsg = ej.error; } catch {}
+      // Check for the "exceeds limit" message common with DEMO_KEY
+      if (raw.includes('exceeds') || raw.includes('limit')) {
+        errMsg += ' — La consulta excede el límite. Prueba filtrar por un commodity específico o un estado.';
+      }
+      throw new Error(errMsg);
+    }
+
+    let json;
+    try { json = JSON.parse(raw); } catch { throw new Error('JSON inválido en la respuesta.'); }
+    if (json.error) throw new Error(json.error);
+
+    const data = json.data || [];
+    if (!data.length) {
+      setStatus('error', '⚠ Sin registros. Prueba otro año, commodity o estado. DEMO_KEY tiene cuotas.');
+      showEmpty('Sin registros para los filtros seleccionados.');
+      return;
+    }
+
+    ALL_DATA = data;
+
+    // Extract unique commodities
+    COMMODITIES_IN_DATA = [...new Set(data.map(r => r.commodity_desc))].sort();
+
+    setStatus('ok', `✓ ${data.length} registros · ${COMMODITIES_IN_DATA.length} commodities · Año ${year}`);
+    document.getElementById('record-count-footer').textContent =
+      `${data.length} registros descargados · ${COMMODITIES_IN_DATA.length} commodities · Año ${year}`;
+    document.getElementById('period-label').textContent =
+      `Año ${year} · ${COMMODITIES_IN_DATA.length} commodities · ${state ? titleCase(state) : 'Todos los estados'}`;
+
+    // Render commodity tabs
+    renderTabs();
+
+    // Show first commodity or all
+    if (COMMODITIES_IN_DATA.length === 1) {
+      renderForCommodity(COMMODITIES_IN_DATA[0]);
+    } else {
+      renderForCommodity(null); // all
+    }
+
+  } catch(e) {
+    setStatus('error', '✗ ' + e.message);
+    showEmpty(e.message);
+    console.error(e);
+  } finally {
+    document.getElementById('btn-fetch').disabled = false;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════
+   TABS
+══════════════════════════════════════════════════════════ */
+function renderTabs() {
+  const cont = document.getElementById('commodity-tabs');
+  cont.innerHTML = '';
+
+  if (COMMODITIES_IN_DATA.length <= 1) return;
+
+  // "All" tab
+  const allTab = document.createElement('div');
+  allTab.className = 'tab active';
+  allTab.textContent = 'Todas';
+  allTab.onclick = () => { setActiveTab(allTab); renderForCommodity(null); };
+  cont.appendChild(allTab);
+
+  COMMODITIES_IN_DATA.forEach(c => {
+    const t = document.createElement('div');
+    t.className = 'tab';
+    t.textContent = c;
+    t.onclick = () => { setActiveTab(t); renderForCommodity(c); };
+    cont.appendChild(t);
+  });
+}
+
+function setActiveTab(active) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  active.classList.add('active');
+}
+
+/* ══════════════════════════════════════════════════════════
+   RENDER FOR A COMMODITY (or all)
+══════════════════════════════════════════════════════════ */
+function renderForCommodity(commodity) {
+  const data = commodity ? ALL_DATA.filter(r => r.commodity_desc === commodity) : ALL_DATA;
+  renderCards(data, commodity);
+  renderTable(data, commodity);
+  renderGEChart(data, commodity);
+}
+
+/* ══════════════════════════════════════════════════════════
+   CARDS — aggregate summary
+══════════════════════════════════════════════════════════ */
+function renderCards(data, commodity) {
+  const section = document.getElementById('cards-section');
+  const cont = document.getElementById('cards');
+
+  // Find latest week
+  const weeks = [...new Set(data.map(r => r.week_ending).filter(Boolean))].sort();
+  const latestWeek = weeks[weeks.length - 1];
+  const latest = data.filter(r => r.week_ending === latestWeek);
+
+  const agg = aggregateConditions(latest);
+  if (!agg) { section.style.display = 'none'; return; }
+
+  section.style.display = '';
+  const label = commodity || 'Todas las commodities';
+
+  cont.innerHTML = `
+    <div class="mc">
+      <div class="ml">Excelente</div>
+      <div class="mv up">${pct(agg.excellent)}</div>
+      <div class="ms">${label}</div>
+    </div>
+    <div class="mc">
+      <div class="ml">Bueno</div>
+      <div class="mv" style="color:var(--blue);">${pct(agg.good)}</div>
+      <div class="ms">Semana ${latestWeek || '—'}</div>
+    </div>
+    <div class="mc">
+      <div class="ml">Regular</div>
+      <div class="mv" style="color:var(--orange);">${pct(agg.fair)}</div>
+      <div class="ms">&nbsp;</div>
+    </div>
+    <div class="mc">
+      <div class="ml">Pobre</div>
+      <div class="mv down">${pct(agg.poor)}</div>
+      <div class="ms">&nbsp;</div>
+    </div>
+    <div class="mc">
+      <div class="ml">Good + Excellent</div>
+      <div class="mv" style="color:${geColor(agg.ge)};">${pct(agg.ge)}</div>
+      <div class="ms">Combinado</div>
+    </div>
+  `;
+}
+
+/* ══════════════════════════════════════════════════════════
+   TABLE
+══════════════════════════════════════════════════════════ */
+function renderTable(data, commodity) {
+  const grouped = {};
+  data.forEach(r => {
+    const state = r.state_name || 'US TOTAL';
+    const week  = r.week_ending || '—';
+    const comm  = r.commodity_desc || '—';
+    const key   = `${comm}||${state}||${week}`;
+    if (!grouped[key]) grouped[key] = { commodity: comm, state, week, cats: {} };
+    const desc = (r.short_desc || '').toUpperCase();
+    const val  = parseFloat((r.Value || '').replace(/,/g, ''));
+    if (isNaN(val)) return;
+    if      (desc.includes('VERY POOR')) grouped[key].cats['VP'] = val;
+    else if (desc.includes('POOR'))      grouped[key].cats['P']  = val;
+    else if (desc.includes('FAIR'))      grouped[key].cats['F']  = val;
+    else if (desc.includes('EXCELLENT')) grouped[key].cats['E']  = val;
+    else if (desc.includes('GOOD'))      grouped[key].cats['G']  = val;
+  });
+
+  const rows = Object.values(grouped).sort((a, b) => {
+    if (a.commodity < b.commodity) return -1;
+    if (a.commodity > b.commodity) return 1;
+    if (a.week > b.week) return -1;
+    if (a.week < b.week) return 1;
+    return a.state.localeCompare(b.state);
+  });
+
+  if (!rows.length) { showEmpty('No se pudieron agrupar los datos.'); return; }
+
+  const showCommodityCol = !commodity;
+
+  let html = `<div class="tbl-wrap"><table><thead><tr>`;
+  if (showCommodityCol) html += `<th>Commodity</th>`;
+  html += `<th>Estado</th><th>Semana</th><th>V.Poor</th><th>Poor</th><th>Fair</th><th>Good</th><th>Exc.</th><th>G+E %</th><th>Condición</th></tr></thead><tbody>`;
+
+  rows.forEach(r => {
+    const vp = r.cats['VP'] ?? null;
+    const po = r.cats['P']  ?? null;
+    const fa = r.cats['F']  ?? null;
+    const go = r.cats['G']  ?? null;
+    const ex = r.cats['E']  ?? null;
+    const ge = (go != null && ex != null) ? go + ex : null;
+
+    html += '<tr>';
+    if (showCommodityCol) html += `<td style="color:var(--accent);font-weight:500;font-size:11px;">${r.commodity}</td>`;
+    html += `<td class="td-state">${titleCase(r.state)}</td>`;
+    html += `<td>${r.week}</td>`;
+    html += `<td class="td-vpoor">${pct(vp)}</td>`;
+    html += `<td class="td-poor">${pct(po)}</td>`;
+    html += `<td class="td-fair">${pct(fa)}</td>`;
+    html += `<td class="td-good">${pct(go)}</td>`;
+    html += `<td class="td-exc">${pct(ex)}</td>`;
+    html += `<td class="td-ge ${ge != null ? geClass(ge) : ''}">${ge != null ? ge.toFixed(0) + '%' : '—'}</td>`;
+    html += `<td>${buildBar(vp, po, fa, go, ex)}</td>`;
+    html += '</tr>';
+  });
+
+  html += '</tbody></table></div>';
+  document.getElementById('table-container').innerHTML = html;
+}
+
+/* ══════════════════════════════════════════════════════════
+   GE HORIZONTAL BAR CHART
+══════════════════════════════════════════════════════════ */
+function renderGEChart(data, commodity) {
+  const section = document.getElementById('chart-section');
+  const cont = document.getElementById('ge-bars');
+
+  // Latest week
+  const weeks = [...new Set(data.map(r => r.week_ending).filter(Boolean))].sort();
+  const latestWeek = weeks[weeks.length - 1];
+  if (!latestWeek) { section.style.display = 'none'; return; }
+
+  const latest = data.filter(r => r.week_ending === latestWeek);
+
+  // Group by state → compute GE
+  const stateGE = {};
+  latest.forEach(r => {
+    const state = r.state_name || 'US TOTAL';
+    const desc  = (r.short_desc || '').toUpperCase();
+    const val   = parseFloat((r.Value || '').replace(/,/g, ''));
+    if (isNaN(val)) return;
+    if (!stateGE[state]) stateGE[state] = { good: 0, exc: 0, hasGood: false, hasExc: false };
+    if (desc.includes('EXCELLENT')) { stateGE[state].exc = val; stateGE[state].hasExc = true; }
+    else if (desc.includes('GOOD') && !desc.includes('VERY'))  { stateGE[state].good = val; stateGE[state].hasGood = true; }
+  });
+
+  const entries = Object.entries(stateGE)
+    .filter(([,v]) => v.hasGood || v.hasExc)
+    .map(([state, v]) => ({ state, ge: v.good + v.exc }))
+    .sort((a, b) => b.ge - a.ge);
+
+  if (!entries.length) { section.style.display = 'none'; return; }
+
+  section.style.display = '';
+  document.getElementById('chart-title').textContent =
+    `Good + Excellent % — ${commodity || 'Todas'} — Semana ${latestWeek}`;
+
+  let html = '';
+  entries.forEach(e => {
+    const color = e.ge >= 60 ? 'var(--up)' : e.ge >= 40 ? 'var(--accent)' : 'var(--down)';
+    html += `
+    <div class="hist-row">
+      <span class="hist-year" style="min-width:90px;">${titleCase(e.state)}</span>
+      <div class="hist-bar-wrap">
+        <div class="hist-bar" style="width:${e.ge}%;background:${color};"></div>
+      </div>
+      <span class="hist-val" style="color:${color};">${e.ge.toFixed(0)}%</span>
+    </div>`;
+  });
+  cont.innerHTML = html;
+}
+
+/* ══════════════════════════════════════════════════════════
+   AGGREGATE CONDITIONS (average across states for latest week)
+══════════════════════════════════════════════════════════ */
+function aggregateConditions(data) {
+  const totals = { excellent: 0, good: 0, fair: 0, poor: 0, vpoor: 0 };
+  const counts = { excellent: 0, good: 0, fair: 0, poor: 0, vpoor: 0 };
+
+  data.forEach(r => {
+    const desc = (r.short_desc || '').toUpperCase();
+    const val  = parseFloat((r.Value || '').replace(/,/g, ''));
+    if (isNaN(val)) return;
+    if      (desc.includes('VERY POOR'))  { totals.vpoor += val; counts.vpoor++; }
+    else if (desc.includes('POOR'))       { totals.poor += val; counts.poor++; }
+    else if (desc.includes('FAIR'))       { totals.fair += val; counts.fair++; }
+    else if (desc.includes('EXCELLENT'))  { totals.excellent += val; counts.excellent++; }
+    else if (desc.includes('GOOD'))       { totals.good += val; counts.good++; }
+  });
+
+  const avg = (k) => counts[k] ? totals[k] / counts[k] : null;
+  const e = avg('excellent'), g = avg('good'), f = avg('fair'), p = avg('poor'), vp = avg('vpoor');
+  const ge = (e != null && g != null) ? e + g : null;
+  if (ge == null && e == null && g == null) return null;
+  return { excellent: e, good: g, fair: f, poor: p, vpoor: vp, ge };
+}
+
+/* ══════════════════════════════════════════════════════════
+   VISUAL HELPERS
+══════════════════════════════════════════════════════════ */
+function buildBar(vp, po, fa, go, ex) {
+  const segs = [
+    { val: vp || 0, color: '#dc2626' },
+    { val: po || 0, color: '#ef4444' },
+    { val: fa || 0, color: '#f59e0b' },
+    { val: go || 0, color: '#3b82f6' },
+    { val: ex || 0, color: '#22c55e' },
+  ];
+  const total = segs.reduce((s, seg) => s + seg.val, 0);
+  if (total === 0) return '<span style="color:var(--muted);font-size:10px;">—</span>';
+  return '<div class="cbar">' +
+    segs.filter(s => s.val > 0).map(s =>
+      `<div class="cbar-seg" style="width:${(s.val / total * 100).toFixed(1)}%;background:${s.color};" title="${s.val}%"></div>`
+    ).join('') + '</div>';
+}
+
+function geColor(v) { return v >= 60 ? 'var(--up)' : v >= 40 ? 'var(--accent)' : 'var(--down)'; }
+function geClass(v) { return v >= 60 ? 'ge-high' : v >= 40 ? 'ge-mid' : 'ge-low'; }
+
+function showEmpty(msg) {
+  document.getElementById('table-container').innerHTML =
+    `<div class="empty-state"><strong>Sin resultados</strong>${msg}</div>`;
+}
+
+function clearAll() {
+  document.getElementById('cards-section').style.display = 'none';
+  document.getElementById('chart-section').style.display = 'none';
+  document.getElementById('hist-section').style.display = 'none';
+  document.getElementById('commodity-tabs').innerHTML = '';
+  document.getElementById('table-container').innerHTML =
+    `<div class="empty-state"><strong>Cargando…</strong>Consultando USDA NASS QuickStats API</div>`;
+}
+</script>
+</body>
+</html>
